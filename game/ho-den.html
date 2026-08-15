@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hố Đen 3D - Dev: thinhday099</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #05050d;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        #ui-container {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: space-between;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 800;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .badge {
+            background: rgba(10, 10, 25, 0.7);
+            padding: 8px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 255, 204, 0.4);
+            backdrop-filter: blur(5px);
+            text-shadow: 0 0 8px #00ffcc;
+        }
+
+        #dev-tag {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .controls-panel {
+            position: absolute;
+            top: 60px;
+            left: 15px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn {
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            border: 1px solid #00ffcc;
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn.active {
+            background: #00ffcc;
+            color: #000;
+        }
+
+        #game-over {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #fff;
+            background: rgba(12, 12, 28, 0.95);
+            padding: 25px;
+            width: 85%;
+            max-width: 320px;
+            border-radius: 20px;
+            border: 2px solid #00ffcc;
+            box-shadow: 0 0 25px rgba(0, 255, 204, 0.4);
+            z-index: 20;
+        }
+
+        button.action-btn {
+            margin-top: 15px;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #080814;
+            background: #00ffcc;
+            border: none;
+            border-radius: 25px;
+            width: 100%;
+            cursor: pointer;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="ui-container">
+        <div class="badge">🔥 Cấp <span id="level">1</span></div>
+        <div class="badge">⭐ <span id="score">0</span></div>
+    </div>
+
+    <div class="controls-panel">
+        <div class="btn-group">
+            <button class="btn map-btn active" onclick="changeMap('city')">🏙️ Thành Phố</button>
+            <button class="btn map-btn" onclick="changeMap('forest')">🌲 Rừng Rậm</button>
+            <button class="btn map-btn" onclick="changeMap('ocean')">🌊 Biển Cả</button>
+        </div>
+        <div class="btn-group">
+            <button class="btn diff-btn" onclick="changeDifficulty('easy')">🟢 Dễ</button>
+            <button class="btn diff-btn active" onclick="changeDifficulty('normal')">🟡 Thường</button>
+            <button class="btn diff-btn" onclick="changeDifficulty('hard')">🔴 Khó</button>
+        </div>
+    </div>
+
+    <div id="dev-tag">Nhà phát triển: thinhday099</div>
+
+    <div id="game-over">
+        <h2 id="over-title" style="margin-top:0; color:#00ffcc;">KẾT THÚC! 🎉</h2>
+        <p id="over-desc">Bạn đã chiến thắng!</p>
+        <p>Tổng điểm: <strong id="final-score" style="color:#00ffcc; font-size: 20px;">0</strong></p>
+        <button class="action-btn" onclick="resetGame()">Chơi Lại</button>
+    </div>
+
+    <script>
+        // --- 1. THIẾT LẬP CƠ BẢN ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        sunLight.position.set(40, 60, 20);
+        sunLight.castShadow = true;
+        scene.add(sunLight);
+
+        // --- 2. CẤU HÌNH ĐỘ KHÓ & MAP ---
+        let currentMap = 'city';
+        let currentDifficulty = 'normal';
+
+        // Cấu hình chỉ số cho Bot theo độ khó
+        const difficultySettings = {
+            easy:   { speedMin: 0.02, speedMax: 0.04, chaseDist: 12, evadeDist: 10 },
+            normal: { speedMin: 0.05, speedMax: 0.07, chaseDist: 18, evadeDist: 15 },
+            hard:   { speedMin: 0.09, speedMax: 0.12, chaseDist: 25, evadeDist: 20 }
+        };
+
+        const floorGeo = new THREE.PlaneGeometry(140, 140);
+        const floorMat = new THREE.MeshStandardMaterial({ roughness: 0.8 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        scene.add(floor);
+
+        function applyMapStyle(mapType) {
+            currentMap = mapType;
+            document.querySelectorAll('.map-btn').forEach(btn => btn.classList.remove('active'));
+            
+            if (mapType === 'city') {
+                scene.background = new THREE.Color(0x0f1123);
+                scene.fog = new THREE.FogExp2(0x0f1123, 0.01);
+                floorMat.color.setHex(0x222533);
+            } else if (mapType === 'forest') {
+                scene.background = new THREE.Color(0x112211);
+                scene.fog = new THREE.FogExp2(0x112211, 0.012);
+                floorMat.color.setHex(0x2d5a27);
+            } else if (mapType === 'ocean') {
+                scene.background = new THREE.Color(0x052c42);
+                scene.fog = new THREE.FogExp2(0x052c42, 0.015);
+                floorMat.color.setHex(0x1a658f);
+            }
+        }
+
+        // --- 3. PLAYER & BOTS ---
+        let player = { radius: 1.3, score: 0, mesh: null, light: null };
+        let bots = [];
+        const botNames = ['Bot Red', 'Bot Green', 'Bot Yellow'];
+        const botColors = [0xff3366, 0x33ff66, 0xffcc00];
+
+        function createHoleMesh(color) {
+            const group = new THREE.Group();
+            const ringGeo = new THREE.RingGeometry(1, 1.5, 32);
+            const ringMat = new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            group.add(ring);
+
+            const centerGeo = new THREE.CircleGeometry(1, 32);
+            const centerMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            const center = new THREE.Mesh(centerGeo, centerMat);
+            center.rotation.x = -Math.PI / 2;
+            center.position.y = 0.02;
+            group.add(center);
+
+            return group;
+        }
+
+        // Tạo Player
+        player.mesh = createHoleMesh(0x00ffcc);
+        scene.add(player.mesh);
+
+        player.light = new THREE.PointLight(0x00ffcc, 2, 10);
+        scene.add(player.light);
+
+        // Khởi tạo Bots
+        function initBots() {
+            bots.forEach(b => scene.remove(b.mesh));
+            bots = [];
+
+            const cfg = difficultySettings[currentDifficulty];
+
+            for (let i = 0; i < 3; i++) {
+                const bMesh = createHoleMesh(botColors[i]);
+                const radius = 1.0 + Math.random() * 0.4;
+                
+                const botObj = {
+                    id: i,
+                    name: botNames[i],
+                    radius: radius,
+                    mesh: bMesh,
+                    targetPos: new THREE.Vector3((Math.random() - 0.5) * 80, 0, (Math.random() - 0.5) * 80),
+                    speed: cfg.speedMin + Math.random() * (cfg.speedMax - cfg.speedMin)
+                };
+                
+                botObj.mesh.position.copy(botObj.targetPos);
+                updateHoleScale(botObj, radius);
+                scene.add(botObj.mesh);
+                bots.push(botObj);
+            }
+        }
+
+        function updateHoleScale(entity, radius) {
+            entity.radius = radius;
+            entity.mesh.scale.set(radius, 1, radius);
+        }
+
+        // --- 4. TẠO VẬT THỂ ---
+        let targets = [];
+
+        function createTargets() {
+            targets.forEach(t => scene.remove(t.mesh));
+            targets = [];
+
+            for (let i = 0; i < 110; i++) {
+                let geo, mat, size = 0.5 + Math.random() * 0.8;
+
+                if (currentMap === 'city') {
+                    if (Math.random() > 0.4) {
+                        size = 0.8 + Math.random() * 1.5;
+                        geo = new THREE.BoxGeometry(size, size * 2, size);
+                        mat = new THREE.MeshStandardMaterial({ color: 0x667799 });
+                    } else {
+                        geo = new THREE.BoxGeometry(size * 1.5, size * 0.6, size * 0.8);
+                        mat = new THREE.MeshStandardMaterial({ color: 0xff4444 });
+                    }
+                } else if (currentMap === 'forest') {
+                    if (Math.random() > 0.3) {
+                        geo = new THREE.ConeGeometry(size, size * 2.5, 8);
+                        mat = new THREE.MeshStandardMaterial({ color: 0x2e8b57 });
+                    } else {
+                        geo = new THREE.DodecahedronGeometry(size);
+                        mat = new THREE.MeshStandardMaterial({ color: 0x888888 });
+                    }
+                } else {
+                    geo = new THREE.SphereGeometry(size, 12, 12);
+                    mat = new THREE.MeshStandardMaterial({ color: 0xff7f50, roughness: 0.2 });
+                }
+
+                const mesh = new THREE.Mesh(geo, mat);
+                const x = (Math.random() - 0.5) * 110;
+                const z = (Math.random() - 0.5) * 110;
+
+                if (Math.hypot(x, z) < 6) continue;
+
+                mesh.position.set(x, size / 2, z);
+                mesh.castShadow = true;
+                scene.add(mesh);
+
+                targets.push({ mesh, size });
+            }
+        }
+
+        // --- 5. BỘ TRÍ TUỆ NHÂN TẠO (BOT AI THEO ĐỘ KHÓ) ---
+        function updateBotAI(bot) {
+            const cfg = difficultySettings[currentDifficulty];
+            const distToPlayer = bot.mesh.position.distanceTo(player.mesh.position);
+            
+            // AI phản ứng dựa trên tham số độ khó
+            if (player.radius > bot.radius * 1.1 && distToPlayer < cfg.evadeDist) {
+                // Né tránh Player
+                const runAwayDir = new THREE.Vector3().subVectors(bot.mesh.position, player.mesh.position).normalize();
+                bot.targetPos.addVectors(bot.mesh.position, runAwayDir.multiplyScalar(8));
+            } else if (bot.radius > player.radius * 1.1 && distToPlayer < cfg.chaseDist) {
+                // Săn đuổi Player
+                bot.targetPos.copy(player.mesh.position);
+            } else {
+                // Tìm mồi gần nhất
+                let closestTarget = null;
+                let minDist = 999;
+                targets.forEach(t => {
+                    const d = bot.mesh.position.distanceTo(t.mesh.position);
+                    if (d < minDist) {
+                        minDist = d;
+                        closestTarget = t;
+                    }
+                });
+
+                if (closestTarget) {
+                    bot.targetPos.copy(closestTarget.mesh.position);
+                }
+            }
+
+            bot.mesh.position.lerp(bot.targetPos, bot.speed);
+            bot.mesh.position.y = 0;
+        }
+
+        // --- 6. XỬ LÝ ĐIỀU KHIỂN ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let targetPos = new THREE.Vector3();
+
+        function onInput(clientX, clientY) {
+            mouse.x = (clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObject(floor);
+            if (intersects.length > 0) targetPos.copy(intersects[0].point);
+        }
+
+        window.addEventListener('touchmove', e => onInput(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+        window.addEventListener('pointermove', e => onInput(e.clientX, e.clientY));
+
+        // --- 7. GAME LOOP ---
+        const clock = new THREE.Clock();
+        let isGameOver = false;
+
+        function animate() {
+            if (isGameOver) return;
+            requestAnimationFrame(animate);
+
+            // Di chuyển Player
+            player.mesh.position.lerp(targetPos, 0.12);
+            player.mesh.position.y = 0;
+            player.light.position.copy(player.mesh.position);
+            player.light.position.y = 1.5;
+
+            // Cập nhật Bots
+            bots.forEach((bot, bIndex) => {
+                updateBotAI(bot);
+
+                const distToPlayer = bot.mesh.position.distanceTo(player.mesh.position);
+                // Bot ăn Player
+                if (distToPlayer < bot.radius && bot.radius > player.radius * 1.15) {
+                    endGame(false, "Bạn đã bị " + bot.name + " nuốt chửng!");
+                }
+
+                // Player ăn Bot
+                if (distToPlayer < player.radius && player.radius > bot.radius * 1.15) {
+                    scene.remove(bot.mesh);
+                    bots.splice(bIndex, 1);
+                    player.score += 150;
+                    updateHoleScale(player, player.radius + 0.4);
+                }
+            });
+
+            // Hút vật thể
+            const allHoles = [{ isPlayer: true, ...player }, ...bots];
+
+            targets.forEach((target, index) => {
+                allHoles.forEach(hole => {
+                    const dist = hole.mesh.position.distanceTo(target.mesh.position);
+                    if (dist < hole.radius * 2.0) {
+                        target.mesh.position.lerp(hole.mesh.position, 0.1);
+                        target.mesh.scale.multiplyScalar(0.9);
+
+                        if (dist < hole.radius * 0.5 || target.mesh.scale.x < 0.05) {
+                            scene.remove(target.mesh);
+                            targets.splice(index, 1);
+
+                            if (hole.isPlayer) {
+                                player.score += Math.round(target.size * 10);
+                                document.getElementById('score').innerText = player.score;
+                                if (navigator.vibrate) navigator.vibrate(20);
+                                updateHoleScale(player, player.radius + 0.02 * target.size);
+                                document.getElementById('level').innerText = Math.floor(player.radius);
+                            } else {
+                                updateHoleScale(hole, hole.radius + 0.02 * target.size);
+                            }
+                        }
+                    }
+                });
+            });
+
+            // Camera follow
+            camera.position.x = THREE.MathUtils.lerp(camera.position.x, player.mesh.position.x, 0.08);
+            camera.position.z = THREE.MathUtils.lerp(camera.position.z, player.mesh.position.z + 16 + player.radius, 0.08);
+            camera.position.y = THREE.MathUtils.lerp(camera.position.y, 14 + player.radius * 2.2, 0.08);
+            camera.lookAt(player.mesh.position);
+
+            if (targets.length === 0 && bots.length === 0) {
+                endGame(true, "Bạn đã quét sạch bản đồ!");
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function changeMap(mapType) {
+            applyMapStyle(mapType);
+            resetGame();
+        }
+
+        function changeDifficulty(diff) {
+            currentDifficulty = diff;
+            document.querySelectorAll('.diff-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('onclick').includes(diff)) btn.classList.add('active');
+            });
+            resetGame();
+        }
+
+        function endGame(isWin, msg) {
+            isGameOver = true;
+            document.getElementById('over-title').innerText = isWin ? "THẮNG RỒI! 🎉" : "GAME OVER! 💀";
+            document.getElementById('over-desc').innerText = msg;
+            document.getElementById('final-score').innerText = player.score;
+            document.getElementById('game-over').style.display = 'block';
+        }
+
+        function resetGame() {
+            isGameOver = false;
+            player.score = 0;
+            updateHoleScale(player, 1.3);
+            document.getElementById('score').innerText = 0;
+            document.getElementById('level').innerText = 1;
+            document.getElementById('game-over').style.display = 'none';
+
+            player.mesh.position.set(0, 0, 0);
+            targetPos.set(0, 0, 0);
+
+            initBots();
+            createTargets();
+            animate();
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Start
+        applyMapStyle('city');
+        resetGame();
+    </script>
+</body>
+</html>

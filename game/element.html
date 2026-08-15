@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Little Alchemy 2 - Gọn Gàng & Cuộn Mượt</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 0;
+            background-color: #0b0c16;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #rotate-notice {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(11, 12, 22, 0.95);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+        }
+        #rotate-notice h2 { color: #ff79c6; margin-bottom: 10px; }
+        #rotate-notice p { color: #f1fa8c; font-size: 15px; }
+
+        @media screen and (orientation: portrait) {
+            #rotate-notice { display: flex; }
+        }
+
+        #sidebar {
+            width: 320px;
+            background: #151624;
+            border-right: 2px solid #282a3d;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.6);
+            z-index: 10;
+        }
+        #sidebar-header {
+            padding: 15px;
+            background: #10111a;
+            border-bottom: 2px solid #282a3d;
+            text-align: center;
+        }
+        #sidebar-header h2 {
+            margin: 0 0 8px 0;
+            color: #ff79c6;
+            font-size: 19px;
+            letter-spacing: 1px;
+        }
+        #search-box {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 18px;
+            border: 1px solid #44475a;
+            background: #21222c;
+            color: white;
+            font-size: 13px;
+            outline: none;
+        }
+        #search-box:focus { border-color: #bd93f9; }
+        
+        #element-list {
+            padding: 12px;
+            overflow-y: auto;
+            flex-grow: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-content: flex-start;
+            /* Đảm bảo thanh cuộn mượt và luôn lướt được lên trên cùng */
+            scrollbar-width: thin;
+            scrollbar-color: #44475a #151624;
+        }
+
+        #element-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        #element-list::-webkit-scrollbar-track {
+            background: #151624;
+        }
+        #element-list::-webkit-scrollbar-thumb {
+            background-color: #44475a;
+            border-radius: 10px;
+        }
+
+        .element-item {
+            background: #21222c;
+            padding: 6px 10px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 400;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            border: 1px solid #44475a;
+        }
+        .element-item span:first-child {
+            font-size: 14px;
+        }
+        .element-item:hover {
+            background: #44475a;
+            transform: translateY(-1px);
+            border-color: #bd93f9;
+        }
+
+        #workspace {
+            flex-grow: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #181a29 0%, #07080f 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        #workspace-header {
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        #stats {
+            font-size: 15px;
+            color: #50fa7b;
+            font-weight: bold;
+        }
+        .btn-action {
+            background: #ff5555;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            margin-left: 6px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn-action:hover { opacity: 0.85; }
+
+        #drop-zone {
+            flex-grow: 1;
+            position: relative;
+        }
+
+        .board-element {
+            position: absolute;
+            background: #bd93f9;
+            color: #10111a;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+            border: 2px solid #ff79c6;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 5;
+        }
+        .board-element span:first-child {
+            font-size: 16px;
+        }
+        .board-element:hover {
+            transform: scale(1.05);
+            border-color: #fff;
+        }
+
+        #message-box {
+            padding: 10px;
+            text-align: center;
+            background: rgba(0,0,0,0.5);
+            color: #f1fa8c;
+            font-size: 13px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        #modal {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .modal-content {
+            background: #1f202e;
+            padding: 30px 45px;
+            border-radius: 18px;
+            text-align: center;
+            border: 2px solid #50fa7b;
+            box-shadow: 0 0 30px rgba(80, 250, 123, 0.4);
+            animation: popIn 0.3s ease-out;
+        }
+        .modal-content h2 { color: #50fa7b; margin-top: 0; font-size: 24px; }
+        .modal-icon { font-size: 60px; margin: 12px 0; }
+        .btn-close-modal {
+            background: #50fa7b;
+            color: #0b0c16;
+            border: none;
+            padding: 8px 20px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="rotate-notice">
+        <h2>📱 Xoay Ngang Màn Hình Đi Bạn Ơi!</h2>
+        <p>Để có trải nghiệm chơi game mượt mà và không gian rộng rãi nhất, hãy xoay ngang điện thoại của bạn nhé!</p>
+    </div>
+
+    <div id="sidebar">
+        <div id="sidebar-header">
+            <h2>🌌 Alchemy Tự Do</h2>
+            <input type="text" id="search-box" placeholder="🔍 Tìm nguyên tố..." oninput="filterElements()">
+        </div>
+        <div id="element-list"></div>
+    </div>
+
+    <div id="workspace">
+        <div id="workspace-header">
+            <div id="stats">Mở khóa: <span id="discovered-count">4</span> / <span id="total-count">60</span></div>
+            <div>
+                <button class="btn-action" style="background: #ff5555;" onclick="clearWorkspace()">Dọn bàn</button>
+                <button class="btn-action" style="background: #6272a4;" onclick="resetProgress()">Chơi lại</button>
+            </div>
+        </div>
+
+        <div id="drop-zone"></div>
+
+        <div id="message-box">💡 Hướng dẫn: Nhấp vào nguyên tố bên trái để đưa ra bàn. Kéo thả các thẻ lại gần nhau (không cần thứ tự) để kết hợp! Nhấp đúp vào thẻ trên bàn để xóa.</div>
+    </div>
+
+    <div id="modal">
+        <div class="modal-content">
+            <h2 id="modal-heading">Khám Phá Mới!</h2>
+            <div class="modal-icon" id="modal-icon">🌟</div>
+            <h3 id="modal-title" style="color: #ff79c6; margin-bottom: 15px;">Tên</h3>
+            <button class="btn-close-modal" onclick="closeModal()">Tuyệt Vời!</button>
+        </div>
+    </div>
+
+    <script>
+        const elementsData = {
+            "Đất": { icon: "🌍", discovered: true },
+            "Nước": { icon: "💧", discovered: true },
+            "Lửa": { icon: "🔥", discovered: true },
+            "Gió": { icon: "💨", discovered: true },
+
+            "Nham Thạch": { icon: "🌋", discovered: false },
+            "Bùn": { icon: "🟤", discovered: false },
+            "Hơi Nước": { icon: "☁️", discovered: false },
+            "Năng Lượng": { icon: "⚡", discovered: false },
+            "Đá": { icon: "🪨", discovered: false },
+            "Đại Dương": { icon: "🌊", discovered: false },
+            "Mưa": { icon: "🌧️", discovered: false },
+            "Áp Suất": { icon: "🏋️", discovered: false },
+            "Cát": { icon: "⏳", discovered: false },
+            "Thủy Tinh": { icon: "🔍", discovered: false },
+            "Kim Loại": { icon: "🪙", discovered: false },
+            "Đất Sét": { icon: "🧱", discovered: false },
+            "Cây Cỏ": { icon: "🌱", discovered: false },
+            "Sét": { icon: "🌩️", discovered: false },
+            "Mây": { icon: "☁️", discovered: false },
+            "Bầu Trời": { icon: "🌌", discovered: false },
+            "Núi Lửa": { icon: "🌋", discovered: false },
+
+            "Sự Sống": { icon: "🧬", discovered: false },
+            "Thời Gian": { icon: "⌛", discovered: false },
+            "Điện": { icon: "🔌", discovered: false },
+            "Gạch": { icon: "🧱", discovered: false },
+            "Cây Lớn": { icon: "🌳", discovered: false },
+            "Đầm Lầy": { icon: "🐊", discovered: false },
+            "Mặt Trời": { icon: "☀️", discovered: false },
+            "Mặt Trăng": { icon: "🌙", discovered: false },
+            "Động Vật": { icon: "🦊", discovered: false },
+            "Vi Khuẩn": { icon: "🦠", discovered: false },
+            "Con Người": { icon: "👤", discovered: false },
+            "Công Cụ": { icon: "🛠️", discovered: false },
+            "Gỗ": { icon: "🪵", discovered: false },
+            "Ngôi Nhà": { icon: "🏠", discovered: false },
+            "Nông Dân": { icon: "👨‍🌾", discovered: false },
+            "Người Máy": { icon: "🤖", discovered: false },
+            "Bánh Xe": { icon: "⚙️", discovered: false },
+            "Xe Hơi": { icon: "🚗", discovered: false },
+            "Giấy": { icon: "📄", discovered: false },
+            "Sách": { icon: "📚", discovered: false },
+            "Khoa Học": { icon: "🔬", discovered: false },
+
+            "Kính Thiên Văn": { icon: "🔭", discovered: false },
+            "Tên Lửa": { icon: "🚀", discovered: false },
+            "Phi Hành Gia": { icon: "👨‍🚀", discovered: false },
+            "Vệ Tinh": { icon: "🛰️", discovered: false },
+            "Trạm Không Gian": { icon: "🛸", discovered: false },
+            "Hành Tinh": { icon: "🪐", discovered: false },
+            "Hệ Mặt Trời": { icon: "☀️🪐", discovered: false },
+            "Dải Ngân Hà": { icon: "🌀", discovered: false },
+            "Hố Đen": { icon: "🕳️", discovered: false },
+            "Vũ Trụ": { icon: "🌌", discovered: false },
+            "Alien (Người Ngoài Hành Tinh)": { icon: "👽", discovered: false },
+            "Đĩa Bay UFO": { icon: "🛸", discovered: false },
+            "Hành Tinh Cuối Cùng": { icon: "💎🌍", discovered: false },
+            "Thần Linh (God)": { icon: "👑✨", discovered: false }
+        };
+
+        const rawRecipes = [
+            ["Đất", "Lửa", "Nham Thạch"], ["Đất", "Nước", "Bùn"], ["Nước", "Lửa", "Hơi Nước"],
+            ["Gió", "Lửa", "Năng Lượng"], ["Đất", "Gió", "Đá"], ["Nước", "Nước", "Đại Dương"],
+            ["Hơi Nước", "Gió", "Mưa"], ["Đất", "Đất", "Áp Suất"], ["Đá", "Gió", "Cát"],
+            ["Cát", "Lửa", "Thủy Tinh"], ["Đá", "Lửa", "Kim Loại"], ["Bùn", "Đá", "Đất Sét"],
+            ["Đất", "Mưa", "Cây Cỏ"], ["Năng Lượng", "Mưa", "Sét"], ["Gió", "Hơi Nước", "Mây"],
+            ["Gió", "Mây", "Bầu Trời"], ["Nham Thạch", "Đất", "Núi Lửa"], ["Năng Lượng", "Bùn", "Sự Sống"],
+            ["Thủy Tinh", "Cát", "Thời Gian"], ["Kim Loại", "Năng Lượng", "Điện"], ["Đất Sét", "Lửa", "Gạch"],
+            ["Cây Cỏ", "Đất", "Cây Lớn"], ["Bùn", "Cây Cỏ", "Đầm Lầy"], ["Bầu Trời", "Lửa", "Mặt Trời"],
+            ["Bầu Trời", "Đá", "Mặt Trăng"], ["Sự Sống", "Cây Cỏ", "Động Vật"], ["Sự Sống", "Đại Dương", "Vi Khuẩn"],
+            ["Sự Sống", "Đất Sét", "Con Người"], ["Con Người", "Kim Loại", "Công Cụ"], ["Cây Lớn", "Công Cụ", "Gỗ"],
+            ["Gạch", "Con Người", "Ngôi Nhà"], ["Con Người", "Cây Cỏ", "Nông Dân"], ["Sự Sống", "Kim Loại", "Người Máy"],
+            ["Công Cụ", "Gỗ", "Bánh Xe"], ["Kim Loại", "Bánh Xe", "Xe Hơi"], ["Gỗ", "Nước", "Giấy"],
+            ["Giấy", "Giấy", "Sách"], ["Sách", "Con Người", "Khoa Học"], ["Thủy Tinh", "Khoa Học", "Kính Thiên Văn"],
+            ["Khoa Học", "Kim Loại", "Tên Lửa"], ["Con Người", "Tên Lửa", "Phi Hành Gia"], ["Tên Lửa", "Kim Loại", "Vệ Tinh"],
+            ["Phi Hành Gia", "Vệ Tinh", "Trạm Không Gian"], ["Đất", "Bầu Trời", "Hành Tinh"], ["Mặt Trời", "Hành Tinh", "Hệ Mặt Trời"],
+            ["Hệ Mặt Trời", "Hệ Mặt Trời", "Dải Ngân Hà"], ["Mặt Trời", "Hố Đen", "Hố Đen"], ["Ngôi Nhà", "Đá", "Hố Đen"],
+            ["Áp Suất", "Mặt Trời", "Hố Đen"], ["Hành Tinh", "Hành Tinh", "Vũ Trụ"], ["Sự Sống", "Vũ Trụ", "Alien (Người Ngoài Hành Tinh)"],
+            ["Alien (Người Ngoài Hành Tinh)", "Tên Lửa", "Đĩa Bay UFO"], ["Hành Tinh", "Vũ Trụ", "Hành Tinh Cuối Cùng"],
+            ["Vũ Trụ", "Thời Gian", "Thần Linh (God)"], ["Hành Tinh Cuối Cùng", "Sự Sống", "Thần Linh (God)"]
+        ];
+
+        const recipes = {};
+        rawRecipes.forEach(([a, b, result]) => {
+            let key = [a, b].sort().join('+');
+            recipes[key] = result;
+        });
+
+        let activeItemsOnBoard = [];
+        let nextInstanceId = 1;
+
+        function initGame() {
+            renderSidebar();
+            updateStats();
+        }
+
+        function getRecipeKey(a, b) {
+            return [a, b].sort().join('+');
+        }
+
+        function renderSidebar() {
+            const listEl = document.getElementById('element-list');
+            const searchText = document.getElementById('search-box').value.toLowerCase();
+            listEl.innerHTML = '';
+
+            Object.keys(elementsData).sort().forEach(key => {
+                if (elementsData[key].discovered && key.toLowerCase().includes(searchText)) {
+                    const item = document.createElement('div');
+                    item.className = 'element-item';
+                    item.innerHTML = `<span>${elementsData[key].icon}</span> <span>${key}</span>`;
+                    
+                    item.onclick = (e) => {
+                        e.stopPropagation();
+                        const dropZone = document.getElementById('drop-zone');
+                        let rx = dropZone.clientWidth / 2 + (Math.random() * 120 - 60);
+                        let ry = dropZone.clientHeight / 2 + (Math.random() * 120 - 60);
+                        addItemToBoard(key, Math.max(20, rx), Math.max(20, ry));
+                    };
+
+                    listEl.appendChild(item);
+                }
+            });
+        }
+
+        function filterElements() { renderSidebar(); }
+
+        function updateStats() {
+            let discoveredCount = 0;
+            let totalKeys = Object.keys(elementsData);
+            totalKeys.forEach(k => { if (elementsData[k].discovered) discoveredCount++; });
+
+            document.getElementById('discovered-count').innerText = discoveredCount;
+            document.getElementById('total-count').innerText = totalKeys.length;
+        }
+
+        function addItemToBoard(name, x, y) {
+            activeItemsOnBoard.push({
+                id: nextInstanceId++,
+                name: name,
+                x: x,
+                y: y
+            });
+            renderBoard();
+            checkCollisions();
+        }
+
+        function renderBoard() {
+            const dropZone = document.getElementById('drop-zone');
+            dropZone.innerHTML = '';
+
+            activeItemsOnBoard.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'board-element';
+                div.style.left = item.x + 'px';
+                div.style.top = item.y + 'px';
+                div.innerHTML = `<span>${elementsData[item.name].icon}</span> <span>${item.name}</span>`;
+
+                let isDragging = false;
+                let startX, startY;
+
+                div.onmousedown = (e) => {
+                    isDragging = true;
+                    startX = e.clientX - item.x;
+                    startY = e.clientY - item.y;
+                    e.stopPropagation();
+                };
+
+                window.onmousemove = (e) => {
+                    if (!isDragging) return;
+                    item.x = e.clientX - startX;
+                    item.y = e.clientY - startY;
+                    div.style.left = item.x + 'px';
+                    div.style.top = item.y + 'px';
+                };
+
+                window.onmouseup = () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        checkCollisions();
+                    }
+                };
+
+                div.ondblclick = (e) => {
+                    e.stopPropagation();
+                    activeItemsOnBoard = activeItemsOnBoard.filter(i => i.id !== item.id);
+                    renderBoard();
+                };
+
+                dropZone.appendChild(div);
+            });
+        }
+
+        function checkCollisions() {
+            const threshold = 65;
+            let combined = false;
+
+            for (let i = 0; i < activeItemsOnBoard.length; i++) {
+                for (let j = i + 1; j < activeItemsOnBoard.length; j++) {
+                    let itemA = activeItemsOnBoard[i];
+                    let itemB = activeItemsOnBoard[j];
+
+                    let dist = Math.hypot(itemA.x - itemB.x, itemA.y - itemB.y);
+                    if (dist < threshold) {
+                        let key = getRecipeKey(itemA.name, itemB.name);
+                        let result = recipes[key];
+
+                        if (result) {
+                            let midX = (itemA.x + itemB.x) / 2;
+                            let midY = (itemA.y + itemB.y) / 2;
+
+                            activeItemsOnBoard = activeItemsOnBoard.filter(it => it.id !== itemA.id && it.id !== itemB.id);
+
+                            activeItemsOnBoard.push({
+                                id: nextInstanceId++,
+                                name: result,
+                                x: midX,
+                                y: midY
+                            });
+
+                            if (!elementsData[result].discovered) {
+                                elementsData[result].discovered = true;
+                                renderSidebar();
+                                updateStats();
+                                showModal(result);
+                            }
+
+                            document.getElementById('message-box').innerHTML = `✨ Đã tạo ra: <b>${elementsData[result].icon} ${result}</b>`;
+                            combined = true;
+                            renderBoard();
+                            break;
+                        }
+                    }
+                }
+                if (combined) break;
+            }
+        }
+
+        function showModal(name) {
+            let heading = "Khám Phá Mới!";
+            if(name === "Thần Linh (God)") heading = "👑 ĐẠT CẤP ĐỘ TỐI CAO! 👑";
+            document.getElementById('modal-heading').innerText = heading;
+            document.getElementById('modal-icon').innerText = elementsData[name].icon;
+            document.getElementById('modal-title').innerText = name;
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+        function clearWorkspace() {
+            activeItemsOnBoard = [];
+            renderBoard();
+            document.getElementById('message-box').innerText = "Đã dọn sạch bàn làm việc!";
+        }
+
+        function resetProgress() {
+            if (confirm("Chơi lại từ đầu sẽ mất hết tiến trình?")) {
+                Object.keys(elementsData).forEach(k => {
+                    elementsData[k].discovered = (k === "Đất" || k === "Nước" || k === "Lửa" || k === "Gió");
+                });
+                clearWorkspace();
+                renderSidebar();
+                updateStats();
+            }
+        }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>

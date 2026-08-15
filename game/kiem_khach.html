@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đang chuyển hướng...</title>
+    
+    <!-- Tự động chuyển hướng bằng HTML Meta (sau 2 giây) -->
+    <!-- Thay https://example.com bằng link bạn muốn chuyển đến -->
+    <meta http-equiv="refresh" content="2;url=https://example.com">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        /* Hiệu ứng xoay xoay đẹp mắt */
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="spinner"></div>
+        <h2>Đang chuyển hướng đến game của @nnd.dung...</h2>
+        <p>Vui lòng chờ trong giây lát.</p>
+        <p><small>Nếu trang không tự chuyển, <a href="https://blddung123.github.io/Kiemkhach/">bấm vào đây</a>.</small></p>
+    </div>
+
+    <!-- Tự động chuyển hướng dự phòng bằng JavaScript -->
+    <script>
+        setTimeout(function() {
+            window.location.href = "https://blddung123.github.io/Kiemkhach/";
+        }, 2000); // 2000 millisecond = 2 giây
+    </script>
+
+</body>
+</html>
+

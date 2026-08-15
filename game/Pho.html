@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phở Anh Hai - Phiên Bản 3D Chuẩn Xác</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        /* Menu System */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #2c3e50, #000000);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: white;
+        }
+        .screen h1 {
+            font-size: 50px;
+            color: #f39c12;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .menu-btn {
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 14px 35px;
+            margin: 8px;
+            border-radius: 30px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 280px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+            z-index: 101;
+        }
+        .menu-btn:hover {
+            background: #d35400;
+            transform: scale(1.05);
+        }
+        .menu-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Hướng dẫn công thức nấu phở */
+        .recipe-guide {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            max-width: 480px;
+            text-align: left;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .recipe-guide h3 {
+            margin-top: 0;
+            color: #f1c40f;
+            text-align: center;
+            font-size: 18px;
+        }
+        .recipe-guide ul {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 15px;
+            line-height: 1.4;
+        }
+
+        /* In-Game UI */
+        #game-ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+        .hud-panel {
+            background: rgba(0, 0, 0, 0.75);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            pointer-events: auto;
+            border: 2px solid #e67e22;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+        }
+        #top-hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .stats {
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        #order-board {
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 260px;
+            border: 3px dashed #c0392b;
+        }
+        #order-board h3 {
+            margin: 0 0 5px 0;
+            color: #c0392b;
+            font-size: 16px;
+        }
+        .ingredient-btn {
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 5px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        .ingredient-btn:hover {
+            background: #d35400;
+            transform: translateY(-2px);
+        }
+        #controls-panel {
+            text-align: center;
+            margin-bottom: 20px;
+            pointer-events: auto;
+        }
+
+        .btn-back-ingame {
+            background: #c0392b;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            pointer-events: auto;
+            transition: background 0.2s;
+        }
+        .btn-back-ingame:hover {
+            background: #a93226;
+        }
+
+        /* Modal Game Over */
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            display: none;
+            pointer-events: auto;
+            z-index: 50;
+        }
+        #game-over h2 {
+            font-size: 48px;
+            color: #e74c3c;
+            margin-bottom: 10px;
+        }
+        .btn-restart {
+            background: #27ae60;
+            color: white;
+            padding: 15px 30px;
+            font-size: 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .btn-restart:hover {
+            background: #219653;
+        }
+    </style>
+    <!-- Nhúng thư viện Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <!-- 1. Màn hình Menu Chính -->
+    <div id="main-menu" class="screen">
+        <h1>🍜 Phở Anh Hai 3D</h1>
+        <div class="recipe-guide">
+            <h3>📜 Bí Quyết Nấu Phở Gia Truyền</h3>
+            <ul>
+                <li><strong>Phở Tái:</strong> Bánh Phở + Thịt Tái + Hành Lá</li>
+                <li><strong>Phở Nạm:</strong> Bánh Phở + Thịt Nạm + Hành Lá</li>
+                <li><strong>Phở Đặc Biệt:</strong> Bánh Phở + Thịt Tái + Thịt Nạm + Hành Lá</li>
+            </ul>
+        </div>
+        <button class="menu-btn" onclick="showDifficultyMenu()">Chơi Game</button>
+        <button class="menu-btn" onclick="showSettings()">Cài Đặt</button>
+        <button class="menu-btn" style="background: #c0392b;" onclick="window.close()">Thoát</button>
+    </div>
+
+    <!-- 2. Màn hình Chọn Độ Khó -->
+    <div id="difficulty-menu" class="screen" style="display: none;">
+        <h1>Chọn Chế Độ Chơi</h1>
+        <button class="menu-btn" style="background: #27ae60;" onclick="startGame('easy')">Dễ (Thời gian trôi chậm)</button>
+        <button class="menu-btn" style="background: #f39c12;" onclick="startGame('medium')">Trung Bình (Bình thường)</button>
+        <button class="menu-btn" style="background: #e74c3c;" onclick="startGame('hard')">Khó (Nhanh - 50s)</button>
+        <button class="menu-btn" style="background: #9b59b6;" onclick="startGame('practice')">Luyện Tập (Vô hạn thời gian)</button>
+        <button class="menu-btn" style="background: #7f8c8d; margin-top: 15px;" onclick="backToMainMenu()">Quay Lại</button>
+    </div>
+
+    <!-- 3. Màn hình Cài Đặt -->
+    <div id="settings-menu" class="screen" style="display: none;">
+        <h1>Cài Đặt</h1>
+        <p style="font-size: 18px; margin-bottom: 20px; text-align: center; max-width: 400px;">Hệ thống đồ họa 3D Three.js đã tối ưu hóa tương tác.</p>
+        <button class="menu-btn" onclick="backToMainMenu()">Quay Lại</button>
+    </div>
+
+    <!-- 4. Giao diện trong game (HUD) -->
+    <div id="game-ui">
+        <div id="top-hud">
+            <div class="hud-panel">
+                <h1 style="font-size: 20px; margin:0; color:#f39c12;">🍜 Quán Phở Anh Hai</h1>
+                <div class="stats">Điểm: <span id="score">0</span> | Chế độ: <span id="mode-display" style="color: #f1c40f;">Dễ</span></div>
+                <button class="btn-back-ingame" onclick="backToMainMenu()">🏠 Trở về Menu</button>
+            </div>
+            <div id="order-board" class="hud-panel" style="pointer-events: auto;">
+                <h3>Khách Gọi:</h3>
+                <div id="order-text" style="font-size: 18px; font-weight: bold;">Đang chuẩn bị...</div>
+                <div id="patience-container" style="background: #ddd; height: 10px; border-radius: 5px; margin-top: 8px; overflow: hidden;">
+                    <div id="patience-bar" style="background: #2ecc71; width: 100%; height: 100%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="controls-panel">
+            <button class="ingredient-btn" onclick="addIngredient('Bánh Phở')">🍜 Bánh Phở</button>
+            <button class="ingredient-btn" onclick="addIngredient('Thịt Tái')">🥩 Thịt Tái</button>
+            <button class="ingredient-btn" onclick="addIngredient('Thịt Nạm')">🍖 Thịt Nạm</button>
+            <button class="ingredient-btn" onclick="addIngredient('Hành Lá')">🌿 Hành Lá</button>
+            <button class="ingredient-btn" style="background: #27ae60;" onclick="serveBowl()">✨ Bưng Phở Phục Vụ</button>
+        </div>
+    </div>
+
+    <!-- Màn hình Thua Cuộc -->
+    <div id="game-over">
+        <h2>QUÁN Ế / KHÁCH BỎ ĐI!</h2>
+        <p style="font-size: 20px;">Tổng số tô phở Anh Hai bán được: <span id="final-score">0</span></p>
+        <button class="btn-restart" onclick="backToMainMenu()">Về Menu Chính</button>
+    </div>
+
+    <script>
+        // Điều hướng Menu chuẩn xác
+        function showDifficultyMenu() {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('difficulty-menu').style.display = 'flex';
+        }
+
+        function showSettings() {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('settings-menu').style.display = 'flex';
+        }
+
+        function backToMainMenu() {
+            gameActive = false;
+            document.getElementById('difficulty-menu').style.display = 'none';
+            document.getElementById('settings-menu').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'none';
+            document.getElementById('game-over').style.display = 'none';
+            document.getElementById('main-menu').style.display = 'flex';
+            if (renderer && renderer.domElement) {
+                renderer.domElement.style.display = 'none';
+            }
+        }
+
+        // Cốt truyện & Hệ thống Game 3D
+        let scene, camera, renderer;
+        let ingredientsGroup;
+        let score = 0;
+        let currentOrder = [];
+        let playerBowl = [];
+        let patience = 100;
+        let gameActive = false;
+        let patienceDecayRate = 0.035;
+        let isPracticeMode = false;
+
+        const recipes = {
+            "Phở Tái": ["Bánh Phở", "Thịt Tái", "Hành Lá"],
+            "Phở Nạm": ["Bánh Phở", "Thịt Nạm", "Hành Lá"],
+            "Phở Đặc Biệt": ["Bánh Phở", "Thịt Tái", "Thịt Nạm", "Hành Lá"]
+        };
+        const recipeKeys = Object.keys(recipes);
+
+        function startGame(difficulty) {
+            document.getElementById('difficulty-menu').style.display = 'none';
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'flex';
+            document.getElementById('game-over').style.display = 'none';
+            
+            if (difficulty === 'easy') {
+                patienceDecayRate = 0.035;
+                isPracticeMode = false;
+                document.getElementById('mode-display').innerText = "Dễ (Chậm)";
+                document.getElementById('patience-container').style.display = 'block';
+            } else if (difficulty === 'medium') {
+                patienceDecayRate = 0.08;
+                isPracticeMode = false;
+                document.getElementById('mode-display').innerText = "Trung Bình";
+                document.getElementById('patience-container').style.display = 'block';
+            } else if (difficulty === 'hard') {
+                patienceDecayRate = 0.22;
+                isPracticeMode = false;
+                document.getElementById('mode-display').innerText = "Khó (Nhanh 50s)";
+                document.getElementById('patience-container').style.display = 'block';
+            } else if (difficulty === 'practice') {
+                isPracticeMode = true;
+                document.getElementById('mode-display').innerText = "Luyện Tập (Vô Hạn)";
+                document.getElementById('patience-container').style.display = 'none';
+            }
+
+            score = 0;
+            document.getElementById('score').innerText = score;
+            gameActive = true;
+
+            if (!renderer) {
+                init3D();
+            } else {
+                renderer.domElement.style.display = 'block';
+                generateNewOrder();
+            }
+        }
+
+        function init3D() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x2c3e50);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 7, 8);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            // Ánh sáng
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            dirLight.position.set(5, 12, 7);
+            scene.add(dirLight);
+
+            // Mặt bàn gỗ 
+            const tableGeo = new THREE.BoxGeometry(10, 0.5, 6);
+            const tableMat = new THREE.MeshStandardMaterial({ color: 0x8e44ad, roughness: 0.3 });
+            const table = new THREE.Mesh(tableGeo, tableMat);
+            table.position.y = -0.75;
+            scene.add(table);
+
+            // --- TẠO BÁT PHỞ 3D ĐẸP MẮT CHUẨN XÁC BẰNG HÌNH HỌC LÒNG SÂU ---
+            // Sử dụng LatheGeometry để tạo hình dáng bát sứ cong mượt mà, chuyên nghiệp
+            const points = [];
+            for (let i = 0; i <= 10; i++) {
+                let t = i / 10;
+                let x = 0.5 + t * 0.8; // Bát loe dần từ đáy lên miệng
+                let y = -0.4 + t * 0.9; // Chiều cao bát
+                points.push(new THREE.Vector2(x, y));
+            }
+            const bowlGeo = new THREE.LatheGeometry(points, 32);
+            const bowlMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, side: THREE.DoubleSide });
+            const bowlMesh = new THREE.Mesh(bowlGeo, bowlMat);
+            bowlMesh.position.set(0, 0.1, 0);
+            scene.add(bowlMesh);
+
+            // Nước dùng phở óng ánh nằm bên trong lòng bát
+            const brothGeo = new THREE.CylinderGeometry(1.1, 0.7, 0.5, 32);
+            const brothMat = new THREE.MeshStandardMaterial({ color: 0xd35400, roughness: 0.2, transparent: true, opacity: 0.9 });
+            const broth = new THREE.Mesh(brothGeo, brothMat);
+            broth.position.set(0, -0.05, 0);
+            scene.add(broth);
+
+            // Group chứa các nguyên liệu cho vào tô
+            ingredientsGroup = new THREE.Group();
+            ingredientsGroup.position.set(0, 0.05, 0);
+            scene.add(ingredientsGroup);
+
+            window.addEventListener('resize', onWindowResize);
+            generateNewOrder();
+            animate();
+        }
+
+        function generateNewOrder() {
+            const randomKey = recipeKeys[Math.floor(Math.random() * recipeKeys.length)];
+            currentOrder = recipes[randomKey];
+            document.getElementById('order-text').innerText = `${randomKey}: ` + currentOrder.join(" + ");
+            patience = 100;
+            playerBowl = [];
+            updateBowlVisuals();
+        }
+
+        function addIngredient(name) {
+            if (!gameActive) return;
+            if (playerBowl.length < 4) {
+                playerBowl.push(name);
+                updateBowlVisuals();
+            }
+        }
+
+        function updateBowlVisuals() {
+            while(ingredientsGroup.children.length > 0){ 
+                ingredientsGroup.remove(ingredientsGroup.children[0]); 
+            }
+
+            playerBowl.forEach((ing, index) => {
+                let mesh;
+                if (ing === 'Bánh Phở') {
+                    const geo = new THREE.CylinderGeometry(0.85, 0.85, 0.08, 16);
+                    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+                    mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set(0, index * 0.08, 0);
+                } else if (ing === 'Thịt Tái') {
+                    const geo = new THREE.BoxGeometry(0.4, 0.04, 0.3);
+                    const mat = new THREE.MeshStandardMaterial({ color: 0xff7675, roughness: 0.3 });
+                    mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set((Math.random() - 0.5) * 0.4, index * 0.08, (Math.random() - 0.5) * 0.4);
+                    mesh.rotation.y = Math.random() * Math.PI;
+                } else if (ing === 'Thịt Nạm') {
+                    const geo = new THREE.BoxGeometry(0.35, 0.08, 0.35);
+                    const mat = new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.4 });
+                    mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set((Math.random() - 0.5) * 0.4, index * 0.08, (Math.random() - 0.5) * 0.4);
+                } else if (ing === 'Hành Lá') {
+                    const groupHanh = new THREE.Group();
+                    for(let i=0; i<6; i++) {
+                        const geo = new THREE.CylinderGeometry(0.025, 0.025, 0.12, 6);
+                        const mat = new THREE.MeshStandardMaterial({ color: 0x00b894 });
+                        const h = new THREE.Mesh(geo, mat);
+                        h.position.set((Math.random() - 0.5) * 0.5, 0, (Math.random() - 0.5) * 0.5);
+                        groupHanh.add(h);
+                    }
+                    mesh = groupHanh;
+                    mesh.position.set(0, index * 0.08, 0);
+                }
+
+                if (mesh) {
+                    ingredientsGroup.add(mesh);
+                }
+            });
+        }
+
+        function serveBowl() {
+            if (!gameActive) return;
+
+            let isMatch = playerBowl.length === currentOrder.length && 
+                          playerBowl.every((val, index) => val === currentOrder[index]);
+
+            if (isMatch) {
+                score += 10;
+                document.getElementById('score').innerText = score;
+                generateNewOrder();
+            } else {
+                if (!isPracticeMode) {
+                    gameOver();
+                } else {
+                    alert("Chưa đúng công thức rồi Anh Hai ơi! Hãy xem lại bí quyết trên menu nhé.");
+                }
+            }
+        }
+
+        function gameOver() {
+            gameActive = false;
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('game-over').style.display = 'flex';
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (gameActive) {
+                if (!isPracticeMode) {
+                    patience -= patienceDecayRate;
+                    document.getElementById('patience-bar').style.width = Math.max(0, patience) + '%';
+                    
+                    if (patience <= 0) {
+                        gameOver();
+                    }
+                }
+
+                if (ingredientsGroup) {
+                    ingredientsGroup.rotation.y += 0.003;
+                }
+            }
+
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+    </script>
+</body>
+</html>
