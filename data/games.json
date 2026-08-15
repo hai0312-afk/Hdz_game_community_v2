@@ -1,0 +1,57 @@
+[
+  {
+    "name": "Nhảy Ống Neon",
+    "file": "game/vi-du-nhay-ong.html",
+    "date": "2026-07-20",
+    "hidden": false
+  },
+  {
+    "name": "Đường Đua Bí Mật",
+    "file": "hide/duong-dua-bi-mat.html",
+    "date": "2026-07-15",
+    "hidden": true
+  },
+  {
+    "name": "Game Hố Đen - @thinhmodmcr",
+    "file": "game/ho-den.html",
+    "date": "2026-07-24",
+    "hidden": false
+  },
+  {
+    "name": "Thủ Thành - @hnamz38",
+    "file": "game/thu-thanh.html",
+    "date": "2026-07-24",
+    "hidden": false
+  },
+  {
+    "name": "Game Stick Man - @dudegeorgeonts36",
+    "file": "game/stick-io.html",
+    "date": "2026-07-24",
+    "hidden": false
+  },
+  {
+    "name": "Afterlight - @sound.nice0",
+    "file": "game/Thanh_Pho_Cuoi_Cung_Afterlight.html",
+    "date": "2026-07-26",
+    "hidden": false
+  },
+  {
+    "name": "Game Làm Phở - @thinhmodmcr",
+    "file": "game/Pho.html",
+    "date": "2026-07-26",
+    "hidden": false
+  },
+  {
+    "name": "Kết hợp nguyên tố - @thinhmodmcr",
+    "file": "game/element.html",
+    "date": "2026-07-29",
+    "hidden": false
+  },
+  {
+    "name": "Kiếm khách - @nnd.dung",
+    "file": "game/kiem_khach.html",
+    "date": "2026-08-06",
+    "hidden": false
+  }
+  
+]
