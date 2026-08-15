@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HDZ Game Player</title>
+
+<style>
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#12101c;
+  --surface:#1c1830;
+  --surface-2:#241f3d;
+  --border:#332c50;
+  --text:#f5f2ff;
+  --muted:#9a90b8;
+  --coral:#ff6b5b;
+  --gold:#ffc857;
+  --teal:#5ad1c9;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+html,
+body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Space Grotesk',system-ui,sans-serif;
+  display:flex;
+  flex-direction:column;
+}
+
+.top{
+  height:62px;
+  flex:none;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  padding:0 .9rem;
+}
+
+.logo{
+  color:var(--text);
+  text-decoration:none;
+  font-family:'Press Start 2P',monospace;
+  font-size:.7rem;
+  white-space:nowrap;
+}
+
+.logo span{
+  color:var(--coral);
+}
+
+.game-title{
+  flex:1;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-weight:700;
+}
+
+.actions{
+  display:flex;
+  gap:.4rem;
+}
+
+.action{
+  border:1px solid var(--border);
+  background:var(--surface-2);
+  color:var(--text);
+  border-radius:7px;
+  padding:.5rem .7rem;
+  cursor:pointer;
+  font-size:.72rem;
+}
+
+.action:hover{
+  border-color:var(--teal);
+}
+
+.player{
+  flex:1;
+  min-height:0;
+  background:#fff;
+  position:relative;
+}
+
+iframe{
+  width:100%;
+  height:100%;
+  border:0;
+  background:white;
+  display:block;
+}
+
+.loading{
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  background:var(--bg);
+  color:var(--muted);
+  z-index:2;
+}
+
+.loading-inner{
+  text-align:center;
+}
+
+.spinner{
+  width:34px;
+  height:34px;
+  border:3px solid var(--border);
+  border-top-color:var(--coral);
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+  margin:0 auto 1rem;
+}
+
+.error{
+  text-align:center;
+  max-width:500px;
+  padding:2rem;
+}
+
+.error h2{
+  color:var(--coral);
+}
+
+@keyframes spin{
+  to{
+    transform:rotate(360deg);
+  }
+}
+
+@media(max-width:600px){
+
+  .top{
+    height:56px;
+  }
+
+  .logo{
+    font-size:.55rem;
+  }
+
+  .game-title{
+    font-size:.78rem;
+  }
+
+  .action{
+    padding:.45rem;
+    font-size:.65rem;
+  }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<header class="top">
+
+  <a
+    class="logo"
+    href="index.html"
+  >
+    HDZ <span>GAME</span>
+  </a>
+
+  <div
+    class="game-title"
+    id="game-title"
+  >
+    Đang tải game...
+  </div>
+
+  <div class="actions">
+
+    <button
+      class="action"
+      id="back-button"
+      type="button"
+    >
+      ← Quay lại
+    </button>
+
+    <button
+      class="action"
+      id="download-button"
+      type="button"
+      hidden
+    >
+      📥 Tải
+    </button>
+
+  </div>
+
+</header>
+
+<main class="player">
+
+  <div
+    class="loading"
+    id="loading"
+  >
+    <div class="loading-inner">
+      <div class="spinner"></div>
+      <div>
+        Đang tải game...
+      </div>
+    </div>
+  </div>
+
+  <iframe
+    id="game-frame"
+    title="HDZ Game"
+    sandbox="allow-scripts"
+  ></iframe>
+
+</main>
+
+<script type="module">
+
+import {
+  initializeApp
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  updateDoc,
+  increment
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAJLxturm8eshan8ocMb_N16xfmK0Fz9Dg",
+  authDomain: "hdz-game-community.firebaseapp.com",
+  projectId: "hdz-game-community",
+  storageBucket: "hdz-game-community.firebasestorage.app",
+  messagingSenderId: "927370791664",
+  appId: "1:927370791664:web:8edce7cac0bdccdca6d035"
+};
+
+const app =
+  initializeApp(
+    firebaseConfig
+  );
+
+const db =
+  getFirestore(
+    app
+  );
+
+const params =
+  new URLSearchParams(
+    location.search
+  );
+
+const gameId =
+  params.get(
+    "game"
+  );
+
+const titleElement =
+  document.querySelector(
+    "#game-title"
+  );
+
+const frame =
+  document.querySelector(
+    "#game-frame"
+  );
+
+const loading =
+  document.querySelector(
+    "#loading"
+  );
+
+const downloadButton =
+  document.querySelector(
+    "#download-button"
+  );
+
+const backButton =
+  document.querySelector(
+    "#back-button"
+  );
+
+let currentGame =
+  null;
+
+function escapeScript(value) {
+  return String(value || "")
+    .replace(
+      /<\/script/gi,
+      "<\\/script"
+    );
+}
+
+function buildPlayableHTML(game) {
+
+  const html =
+    game.html || "";
+
+  const css =
+    game.css || "";
+
+  const js =
+    game.js || "";
+
+  const source =
+    html.trim();
+
+  const fullDocument =
+    /<!doctype\s+html/i.test(
+      source
+    ) ||
+    /<html[\s>]/i.test(
+      source
+    );
+
+  if (
+    fullDocument &&
+    !css.trim() &&
+    !js.trim()
+  ) {
+    return source;
+  }
+
+  return `
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+${css}
+</style>
+</head>
+<body>
+${html}
+<script>
+${escapeScript(js)}
+<\/script>
+</body>
+</html>
+`;
+}
+
+function sanitizeFilename(name) {
+  return String(name)
+    .replace(
+      /[<>:"/\\|?*\x00-\x1F]/g,
+      ""
+    )
+    .trim()
+    .slice(
+      0,
+      80
+    ) ||
+    "hdz-game";
+}
+
+function downloadCurrentGame() {
+
+  if (!currentGame) {
+    return;
+  }
+
+  const html =
+    buildPlayableHTML(
+      currentGame
+    );
+
+  const blob =
+    new Blob(
+      [html],
+      {
+        type:
+          "text/html;charset=utf-8"
+      }
+    );
+
+  const url =
+    URL.createObjectURL(
+      blob
+    );
+
+  const link =
+    document.createElement(
+      "a"
+    );
+
+  link.href =
+    url;
+
+  link.download =
+    `${sanitizeFilename(
+      currentGame.title ||
+      "HDZ Game"
+    )}.html`;
+
+  document.body.appendChild(
+    link
+  );
+
+  link.click();
+
+  link.remove();
+
+  setTimeout(
+    () =>
+      URL.revokeObjectURL(
+        url
+      ),
+    1000
+  );
+
+  updateDownloadCount();
+}
+
+async function updateDownloadCount() {
+
+  if (
+    !currentGame ||
+    !gameId
+  ) {
+    return;
+  }
+
+  try {
+
+    await updateDoc(
+      doc(
+        db,
+        "games",
+        gameId
+      ),
+      {
+        downloads:
+          increment(1)
+      }
+    );
+
+  } catch(error) {
+
+    console.warn(
+      "Không cập nhật lượt tải:",
+      error
+    );
+
+  }
+}
+
+async function loadGame() {
+
+  if (!gameId) {
+
+    loading.innerHTML = `
+      <div class="error">
+        <h2>
+          Không tìm thấy game
+        </h2>
+
+        <p>
+          Link game không hợp lệ.
+        </p>
+      </div>
+    `;
+
+    return;
+  }
+
+  try {
+
+    const snapshot =
+      await getDoc(
+        doc(
+          db,
+          "games",
+          gameId
+        )
+      );
+
+    if (
+      !snapshot.exists()
+    ) {
+
+      loading.innerHTML = `
+        <div class="error">
+          <h2>
+            Game không tồn tại
+          </h2>
+
+          <p>
+            Có thể game đã bị xoá.
+          </p>
+        </div>
+      `;
+
+      return;
+    }
+
+    currentGame = {
+      id:
+        snapshot.id,
+      ...snapshot.data()
+    };
+
+    titleElement.textContent =
+      currentGame.title ||
+      "HDZ Game";
+
+    downloadButton.hidden =
+      false;
+
+    frame.srcdoc =
+      buildPlayableHTML(
+        currentGame
+      );
+
+    frame.addEventListener(
+      "load",
+      () => {
+        loading.style.display =
+          "none";
+      },
+      {
+        once:true
+      }
+    );
+
+  } catch(error) {
+
+    console.error(
+      error
+    );
+
+    loading.innerHTML = `
+      <div class="error">
+        <h2>
+          Không thể tải game
+        </h2>
+
+        <p>
+          ${String(
+            error.message ||
+            "Lỗi không xác định"
+          )}
+        </p>
+      </div>
+    `;
+  }
+}
+
+backButton.addEventListener(
+  "click",
+  () => {
+    window.location.href =
+      "index.html";
+  }
+);
+
+downloadButton.addEventListener(
+  "click",
+  downloadCurrentGame
+);
+
+loadGame();
+
+</script>
+
+</body>
+</html>
